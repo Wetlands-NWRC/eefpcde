@@ -80,30 +80,36 @@ def generate_time_series(training_data: TrainingData, img_list: ImageCollection)
 # POST PROCESSING FUNCTIONS     #
 #################################
 
-def export_time_series(time_series: TimeSeries, name: str, folder: str):
+def export_time_series(time_series: TimeSeries, root:str, bucket: str):
     """ Export a time series of training data to a folder. """
     for i, ts in enumerate(time_series):
-        name = f'{name}_{i}'
-        task = ee.batch.Export.table.toDrive(
+        name = f'{root}/training_data/{name}_{i}'
+        task = ee.batch.Export.table.toCloudStorage(
             collection=ts,
-            description=name,
-            folder=folder,
+            bucket=bucket,
+            description="",
+            fileNamePrefix=name,
             fileFormat='CSV'
         )
         task.start()
-        print(f'Exporting {name} to {folder}...')
 
 
-def export_image_list(img_list: ImageCollection, name: str, folder: str):
+def export_image_list_to_cloud(img_list: ImageCollection, bucket: str, root: str):
     """ Export a list of images to a folder. """
     for i, img in enumerate(img_list):
-        name = f'{name}_{i}'
-        task = ee.batch.Export.image.toDrive(
+        filename = img.get('filename').getInfo()
+        name = f'{root}/img/{filename}/{filename}-'
+        task = ee.batch.Export.image.toCloudStorage(
             image=img,
-            description=name,
-            folder=folder,
+            fileNamePrefix=name, 
+            description="",
+            bucket=bucket,
             scale=10,
-            region=img.geometry().bounds()
+            shardSize=64,
+            fileDimensions=[64, 64],
+            maxPixels=1e13,
+            skipEmptyTiles=True
         )
         task.start()
-        print(f'Exporting {name} to {folder}...')
+
+
